@@ -28,7 +28,7 @@ from typing import (
 if TYPE_CHECKING:
     from .layout import LTComponent
 
-import chardet  # For str encoding detection
+import charset_normalizer  # For str encoding detection
 
 # from sys import maxint as INF doesn't work anymore under Python3, but PDF
 # still uses 32 bits ints
@@ -75,8 +75,11 @@ def make_compat_bytes(in_str: str) -> bytes:
 def make_compat_str(o: object) -> str:
     """Converts everything to string, if bytes guessing the encoding."""
     if isinstance(o, bytes):
-        enc = chardet.detect(o)
-        return o.decode(enc["encoding"])
+        enc = charset_normalizer.detect(o)
+        try:
+            return o.decode(enc["encoding"])
+        except UnicodeDecodeError:
+            return str(o)
     else:
         return str(o)
 
@@ -129,7 +132,7 @@ def apply_png_predictor(
 
     Documentation: http://www.libpng.org/pub/png/spec/1.2/PNG-Filters.html
     """
-    if bitspercomponent != 8:
+    if bitspercomponent not in [8, 1]:
         msg = "Unsupported `bitspercomponent': %d" % bitspercomponent
         raise ValueError(msg)
 
